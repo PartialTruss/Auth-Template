@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { generateEmailToken } from "../util/emailToken";
+import { sendVerificationEmail } from "../util/sendVerificationEmail";
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -21,13 +23,26 @@ export const signup = async (req: Request, res: Response) => {
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
 
+
+        const emailToken = generateEmailToken()
+
         // Save user
         const newUser = new User({
             email,
             passwordHash,
+            emailVerificationToken: emailToken,
+            emailVerificationExpires: Date.now() + 1000 * 60 * 60
         });
 
+        const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${emailToken}`
+
+        await sendVerificationEmail(email, verificationLink)
+
         await newUser.save();
+
+
+        res.status(201).json({ message: "Account created.Please verify your email." })
+
 
         // Generate token
         const token = jwt.sign(
@@ -55,29 +70,55 @@ export const login = async (req: Request, res: Response) => {
         return res.status(400).json({ error: "Email and password are required" });
     }
 
-    // Correct: Look up user in MongoDB
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Correct: Compare password
+    if (!user.isVerified) {
+        return res.status(403).json({
+            message: "Please verify your email first",
+        });
+    }
+
     const passwordIsCorrect = await bcrypt.compare(password, user.passwordHash);
     if (!passwordIsCorrect) {
         return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Correct: Sign JWT using user info
     const token = jwt.sign(
         { userId: user._id.toString(), email: user.email },
         process.env.JWT_SECRET as string,
         { expiresIn: "2d" }
     );
 
-    // Respond with token
     res.json({
         message: "Login successful",
         token,
         userId: user._id,
     });
 };
+
+export const verifyEmail = async (req: Request, res: Response) => {
+
+    const { token } = req.query
+
+    const user = await User.findOne({
+        emailVerificationToken: token,
+        emailVerificationExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+        return res.status(400).json({ message: "Invalid or expired token." })
+    }
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+
+    await user.save()
+
+
+    res.json({ message: "Email verified successfully." })
+
+}

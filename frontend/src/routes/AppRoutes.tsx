@@ -3,6 +3,7 @@ import { useUser } from "../hooks/useUser";
 import LoginPage from "../pages/LoginPage";
 import SignupPage from "../pages/SignupPage";
 import UserInfoPage from "../pages/UserInfoPage";
+import VerifyPage from "../pages/VerifyPage";
 import PrivateRoute from "./PrivateRoute";
 
 const AppRoutes = () => {
@@ -12,7 +13,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/sign-up" element={<SignupPage />} />
-
+      <Route path="/verify-email" element={<VerifyPage />} />
       <Route
         element={<PrivateRoute isAllowed={!!user} redirectPath="/login" />}
       >

@@ -11,14 +11,13 @@ const PORT = 3000;
 
 connectToDB();
 
-// 🔴 MUST be first
 app.use(cors({
     origin: "http://localhost:5173",
+    credentials: true,
 }));
 
 app.use(express.json());
 
-// 🔴 Mount router AFTER middleware
 app.use("/auth", authRouter);
 
 app.listen(PORT, () => {

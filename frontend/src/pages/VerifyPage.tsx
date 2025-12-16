@@ -1,41 +1,62 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+type Status = "verifying" | "success" | "error";
+
 const VerifyPage = () => {
-  const [message, setMessage] = useState("Verifying...");
+  const [status, setStatus] = useState<Status>("verifying");
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
   const navigate = useNavigate();
+  const token = searchParams.get("token");
 
   useEffect(() => {
-    if (!token) {
-      setMessage("No token provided.");
-      return;
-    }
+    const controller = new AbortController();
 
-    axios
-      .get(`http://localhost:3000/auth/verify-email?token=${token}`)
-      .then((res) => {
-        setMessage(res.data.message);
+    const verifyEmail = async () => {
+      if (!token) {
+        setStatus("error");
+        return;
+      }
 
-        // Optional: redirect to login after 3 seconds
-        if (res.data.message.includes("success")) {
-          setTimeout(() => navigate("/login"), 3000);
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/auth/verify-email?token=${token}`,
+          { signal: controller.signal }
+        );
+
+        setStatus("success");
+        setStatus(res.data.message);
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
+      } catch (err) {
+        if (err instanceof AxiosError) {
+          if (controller.signal.aborted) return;
+
+          setStatus("error");
+          setStatus(
+            err.response?.data?.message || "Verification failed. Try again."
+          );
         }
-      })
-      .catch((err) => {
-        // Show backend message if available
-        const msg =
-          err.response?.data?.message || "Verification failed. Try again.";
-        setMessage(msg);
-      });
+      }
+    };
+
+    verifyEmail();
+
+    return () => {
+      controller.abort();
+    };
   }, [token, navigate]);
 
   return (
     <div style={{ textAlign: "center", marginTop: "2rem" }}>
       <h1>Email Verification</h1>
-      <p>{message}</p>
+
+      {status === "verifying" && <p>⏳ Please wait...</p>}
+      {status === "success" && <p>✅ Redirecting to login...</p>}
+      {status === "error" && <p>❌ Something went wrong</p>}
     </div>
   );
 };

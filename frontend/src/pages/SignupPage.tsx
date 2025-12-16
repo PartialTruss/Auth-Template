@@ -1,7 +1,8 @@
-import axios from "axios";
+import { AxiosError } from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToken } from "../hooks/useToken";
+import { api } from "../lib/axios";
 
 const SignupPage: React.FC = () => {
   const [token, setToken] = useToken();
@@ -9,7 +10,6 @@ const SignupPage: React.FC = () => {
   const [passwordValue, setPasswordValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
   const navigateTo = useNavigate();
 
   const onLogInClicked = async () => {
@@ -17,20 +17,21 @@ const SignupPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post<{ token: string }>("/api/sign-up", {
+      const response = await api.post<{ token: string }>("/auth/api/sign-up", {
         email: emailValue,
         password: passwordValue,
       });
 
       const { token } = response.data;
       setToken(token);
-      navigateTo("/"); // Redirect to home
-    } catch (err: any) {
-      console.error(err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Login failed. Please try again.");
+      navigateTo("/login");
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        if (err.response?.data?.message) {
+          setError(err.response.data.message);
+        } else {
+          setError("Login failed. Please try again.");
+        }
       }
     } finally {
       setLoading(false);
@@ -39,7 +40,7 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      <h1 className="text-2xl font-bold mb-4">Sign up</h1>
       {error && <p className="text-red-500 mb-2">{error}</p>}
       <input
         type="email"

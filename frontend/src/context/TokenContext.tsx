@@ -1,18 +1,20 @@
-import { createContext, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { TokenContext } from "./CreateContext";
 
 interface ContextChildren {
   children: ReactNode;
 }
-export const TokenContext = createContext();
 
 export const TokenProvider = ({ children }: ContextChildren) => {
-  const [token, setTokenInternal] = useState(() => {
+  const [token, setTokenInternal] = useState<string | null>(() => {
     return localStorage.getItem("token");
   });
 
   const setToken = (newToken: string) => {
     if (!newToken) {
-      return localStorage.removeItem("token");
+      localStorage.removeItem("token");
+      setTokenInternal(null);
+      return;
     }
 
     localStorage.setItem("token", newToken);

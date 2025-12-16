@@ -1,14 +1,14 @@
-import axios from "axios";
+import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToken } from "../hooks/useToken";
 import { useUser } from "../hooks/useUser";
+import { api } from "../lib/axios";
 
 const LoginPage: React.FC = () => {
   const [token, setToken] = useToken();
   const user = useUser();
   const navigate = useNavigate();
-
   const [emailValue, setEmailValue] = useState("");
   const [passwordValue, setPasswordValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,27 +19,27 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post<{ token: string }>("/auth/api/login", {
+      const response = await api.post<{ token: string }>("/auth/api/login", {
         email: emailValue,
         password: passwordValue,
       });
 
       setToken(response.data.token);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed");
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        setError(err.response?.data?.message || "Login failed");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Redirect after token/user is updated
   useEffect(() => {
     if (user) {
       navigate("/", { replace: true });
     }
   }, [user, navigate]);
 
-  // Redirect if already logged in
   if (user) return null;
 
   return (

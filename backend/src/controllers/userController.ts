@@ -1,6 +1,8 @@
+import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import User from "../models/User";
+
 
 interface TokenPayload extends JwtPayload {
     id: string;
@@ -56,3 +58,37 @@ export const updateUser = async (req: Request, res: Response) => {
         });
     }
 };
+
+
+export const updateUserPassword = async (req: Request, res: Response) => {
+    const { passwordResetCode } = req.params
+    const { newPassword } = req.body
+
+    if (!passwordResetCode || !newPassword) {
+        return res.sendStatus(400)
+    }
+
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(passwordResetCode)
+        .digest("hex")
+
+    const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() },
+    })
+
+    if (!user) {
+        return res.sendStatus(404)
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10)
+
+    user.passwordHash = newPasswordHash
+    user.passwordResetToken = undefined
+    user.passwordResetExpires = undefined
+
+    await user.save()
+
+    return res.sendStatus(200)
+}

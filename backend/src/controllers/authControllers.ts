@@ -1,9 +1,11 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
 import { generateEmailToken } from "../util/emailToken";
-import { sendVerificationEmail } from "../util/sendVerificationEmail";
+import { sendPasswordReset, sendVerificationEmail } from "../util/sendVerification";
+
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -121,4 +123,43 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
     res.json({ message: "Email verified successfully." })
 
+}
+
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.params
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" })
+        }
+
+        const user = await User.findOne({ email })
+
+        // Prevent user enumeration
+        if (!user) {
+            return res.status(200).json({
+                message: "If the email exists, a reset link was sent",
+            })
+        }
+
+        const resetToken = crypto.randomBytes(32).toString("hex")
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex")
+
+        user.passwordResetToken = hashedToken
+        user.passwordResetExpires = Date.now() + 1000 * 60 * 15
+
+        await user.save()
+
+        const resetLink = `${process.env.CLIENT_URL}/forgot-password/${resetToken}`
+
+        await sendPasswordReset(email, resetLink)
+
+        return res.status(200).json({ message: "Reset email sent" })
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({ message: "Server error" })
+    }
 }

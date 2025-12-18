@@ -12,14 +12,17 @@ const ForgotPasswordPage = () => {
 
   const onSubmitClicked = async () => {
     try {
-      await api.put(`/auth/api/forgot-password/${emailValue}`);
+      await api.put("/auth/api/forgot-password", {
+        email: emailValue,
+      });
+
       setSuccess(true);
       setTimeout(() => {
         navigate("/login", { replace: true });
       }, 1500);
     } catch (error) {
       if (error instanceof AxiosError) {
-        setErrorMessage(error.message);
+        setErrorMessage(error.response?.data?.message || error.message);
       }
     }
   };
@@ -37,7 +40,9 @@ const ForgotPasswordPage = () => {
         value={emailValue}
         onChange={(e) => setEmailValue(e.target.value)}
       />
-      <button disabled={!emailValue} onClick={onSubmitClicked}></button>
+      <button disabled={!emailValue} onClick={onSubmitClicked}>
+        Submit
+      </button>
     </div>
   );
 };

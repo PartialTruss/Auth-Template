@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useToken } from "./useToken";
+import { useToken } from "../context/useToken";
 
 export const useUser = () => {
     const [token] = useToken();

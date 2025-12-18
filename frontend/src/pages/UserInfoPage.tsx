@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useToken } from "../hooks/useToken";
+import { useToken } from "../context/useToken";
 import { useUser } from "../hooks/useUser";
 
 const UserInfoPage: React.FC = () => {

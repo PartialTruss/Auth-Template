@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useToken } from "../hooks/useToken";
+import { Link, useNavigate } from "react-router-dom";
+import { useToken } from "../context/useToken";
 import { useUser } from "../hooks/useUser";
 import { api } from "../lib/axios";
 
@@ -13,6 +13,23 @@ const LoginPage: React.FC = () => {
   const [passwordValue, setPasswordValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleOauthUrl, setGoogleOauthUrl] = useState("");
+
+  useEffect(() => {
+    const loadOauthUrl = async () => {
+      try {
+        const response = await api.get("/auth/api/google/url");
+        const { url } = response.data;
+        setGoogleOauthUrl(url);
+      } catch (error) {
+        if (error instanceof AxiosError) {
+          console.log(error);
+        }
+      }
+    };
+
+    loadOauthUrl();
+  }, []);
 
   const onLogInClicked = async () => {
     setLoading(true);
@@ -67,6 +84,15 @@ const LoginPage: React.FC = () => {
       >
         {loading ? "Logging in..." : "Log In"}
       </button>
+      <button
+        disabled={!googleOauthUrl}
+        onClick={() => (window.location.href = googleOauthUrl)}
+      >
+        Login with Google
+      </button>
+      <div className="">
+        <Link to="/forgot-password">forgot password?</Link>
+      </div>
     </div>
   );
 };

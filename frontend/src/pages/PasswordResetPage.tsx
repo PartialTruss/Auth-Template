@@ -14,15 +14,14 @@ const PasswordResetPage = () => {
 
   const onResetClicked = async () => {
     try {
-      await api.put(`/auth/api/users/${passwordResetCode}/forgot-password`, {
+      await api.put(`/auth/api/reset-password/${passwordResetCode}`, {
         newPassword: passwordValue,
       });
       setIsSuccess(true);
     } catch (error) {
       if (error instanceof AxiosError) {
         setIsFailure(true);
-        console.log(error);
-        
+        console.log(error.response?.data);
       }
     }
   };

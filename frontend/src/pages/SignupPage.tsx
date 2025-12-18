@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToken } from "../hooks/useToken";
+import { useToken } from "../context/useToken";
 import { api } from "../lib/axios";
 
 const SignupPage: React.FC = () => {

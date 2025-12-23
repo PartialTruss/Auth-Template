@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
     email: string;
-    passwordHash: string;
+    passwordHash?: string;
     isVerified: boolean;
     emailVerificationToken?: string;
     emailVerificationExpires?: Date;
@@ -13,7 +13,7 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: false },
 
     isVerified: {
         type: Boolean,

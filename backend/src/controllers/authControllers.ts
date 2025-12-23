@@ -1,12 +1,12 @@
 import bcrypt from "bcrypt";
-import crypto from "crypto";
 import { Request, Response } from "express";
+import { google } from "googleapis";
 import jwt from "jsonwebtoken";
+import { signupUser } from "../auth/auth.services";
+import { createResetToken } from "../auth/auth.token";
 import User from "../models/User";
-import { generateEmailToken } from "../util/emailToken";
-import { getGoogleOauthUrl } from "../util/googleOauthUtil";
-import { sendPasswordReset, sendVerificationEmail } from "../util/sendVerification";
-
+import { getGoogleOauthUrl, oauthClient } from "../util/googleOauthUtil";
+import { sendPasswordReset } from "../util/sendVerification";
 
 
 export const signup = async (req: Request, res: Response) => {
@@ -17,50 +17,16 @@ export const signup = async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Email and password are required" });
         }
 
-        // Check if user exists
-        const existing = await User.findOne({ email });
-        if (existing) {
-            return res.status(409).json({ error: "User already exists" });
-        }
-
-        // Hash password
-        const passwordHash = await bcrypt.hash(password, 10);
-
-
-        const emailToken = generateEmailToken()
-
-        // Save user
-        const newUser = new User({
-            email,
-            passwordHash,
-            emailVerificationToken: emailToken,
-            emailVerificationExpires: Date.now() + 1000 * 60 * 60
-        });
-
-        const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${emailToken}`
-
-        await sendVerificationEmail(email, verificationLink)
-
-        await newUser.save();
-
-
-        res.status(201).json({ message: "Account created.Please verify your email." })
-
-
-        // Generate token
-        const token = jwt.sign(
-            { userId: newUser._id.toString(), email },
-            process.env.JWT_SECRET as string,
-            { expiresIn: "2d" }
-        );
-
-        res.json({
-            userId: newUser._id,
+        const token = await signupUser(email, password);
+        res.status(201).json({
+            message: "Account created.please verify your email.",
             token,
-        });
+        })
     } catch (error) {
-        console.error("Signup error:", error);
-        res.status(500).json({ error: "Internal server error" });
+        if (error instanceof Error) {
+            console.error("Signup error:", error);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 };
 
@@ -106,6 +72,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
     const { token } = req.query
 
+
+
     const user = await User.findOne({
         emailVerificationToken: token,
         emailVerificationExpires: { $gt: Date.now() }
@@ -127,6 +95,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
 }
 
 
+//--------------------------------------Reset password---------------------------
+
 export const resetPassword = async (req: Request, res: Response) => {
     try {
         const { email } = req.body;
@@ -143,19 +113,14 @@ export const resetPassword = async (req: Request, res: Response) => {
             });
         }
 
-        const resetToken = crypto.randomBytes(32).toString("hex");
+        const { raw, hashed, expires } = createResetToken();
 
-        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-        user.passwordResetToken = hashedToken;
-        user.passwordResetExpires = Date.now() + 1000 * 60 * 15;
+        user.passwordResetToken = hashed;
+        user.passwordResetExpires = expires;
         await user.save();
 
-        console.log(`✅ Reset token created for ${email}`);
-        console.log(`Reset token (plain, send in email): ${resetToken}`);
-        console.log(`Hashed token (DB): ${hashedToken}`);
 
-        const resetLink = `${process.env.CLIENT_URL}/forgot-password/${resetToken}`;
+        const resetLink = `${process.env.CLIENT_URL}/forgot-password/${raw}`;
         await sendPasswordReset(email, resetLink);
 
         return res.status(200).json({ message: "Reset email sent." });
@@ -164,6 +129,8 @@ export const resetPassword = async (req: Request, res: Response) => {
     }
 };
 
+//--------------------------------------------------------------------------
+
 
 export const googleAuth = (req: Request, res: Response) => {
 
@@ -171,3 +138,56 @@ export const googleAuth = (req: Request, res: Response) => {
     res.status(200).json({ url })
 
 }
+
+
+export const googleCallback = async (req: Request, res: Response) => {
+    try {
+        const code = req.query.code as string;
+        if (!code) return res.status(400).json({ error: "Missing code" });
+
+        const { tokens } = await oauthClient.getToken(code);
+        oauthClient.setCredentials(tokens);
+
+        const oauth2 = google.oauth2("v2");
+        const { data } = await oauth2.userinfo.get({
+            auth: oauthClient,
+        });
+
+        if (!data.email) {
+            return res.status(400).json({ error: "No email from Google" });
+        }
+
+        let user = await User.findOne({ email: data.email });
+
+        if (!user) {
+            user = new User({
+                email: data.email,
+                passwordHash: undefined,
+                googleId: data.id,
+                emailVerified: true,
+            });
+            await user.save();
+        }
+
+        const token = jwt.sign(
+            { userId: user._id.toString(), email: user.email },
+            process.env.JWT_SECRET as string,
+            { expiresIn: "2d" }
+        );
+
+        return res.redirect(
+            `http://localhost:5173/oauth-success?token=${token}`
+        );
+    } catch (error: any) {
+        console.error("🔥 GOOGLE CALLBACK ERROR");
+        console.error(error);
+        console.error(error?.message);
+        console.error(error?.stack);
+
+        return res.status(500).json({
+            error: "Google OAuth failed",
+            details: error?.message,
+        });
+    }
+
+};

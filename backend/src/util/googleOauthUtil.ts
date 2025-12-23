@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 
-const oauthClient = new google.auth.OAuth2(
+export const oauthClient = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     "http://localhost:3000/auth/google/callback");

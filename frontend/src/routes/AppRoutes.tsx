@@ -7,6 +7,7 @@ import SignupPage from "../pages/SignupPage";
 import UserInfoPage from "../pages/UserInfoPage";
 import VerifyPage from "../pages/VerifyPage";
 import PrivateRoute from "./PrivateRoute";
+import OauthSuccess from "../pages/OauthSuccess";
 
 const AppRoutes = () => {
   const user = useUser();
@@ -14,6 +15,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/oauth-success" element={<OauthSuccess />} />
       <Route path="/sign-up" element={<SignupPage />} />
       <Route path="/verify-email" element={<VerifyPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

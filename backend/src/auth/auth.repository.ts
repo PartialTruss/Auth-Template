@@ -1,4 +1,3 @@
-// auth.repository.ts
 import User from "../models/User";
 
 export const findUserByEmail = (email: string) =>

@@ -1,6 +1,10 @@
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import main_logo from "../assets/Images/Group 1.svg";
+import Button from "../components/common/Button";
+import Checkbox from "../components/common/Checkbox";
+import Input from "../components/common/Input";
 import { useToken } from "../context/useToken";
 import { useUser } from "../hooks/useUser";
 import { api } from "../lib/axios";
@@ -30,7 +34,6 @@ const LoginPage: React.FC = () => {
     loadGoogleUrl();
   }, []);
 
-  // 🔹 Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate("/", { replace: true });
@@ -58,7 +61,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // 🔹 Prevent blank screen during hydration
   if (user === undefined) {
     return <p className="text-center mt-10">Loading...</p>;
   }
@@ -66,49 +68,60 @@ const LoginPage: React.FC = () => {
   if (user) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
-
-      {error && <p className="text-red-500 mb-3">{error}</p>}
-
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="border p-2 mb-2 w-full max-w-sm rounded"
-      />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="border p-2 mb-4 w-full max-w-sm rounded"
-      />
-
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded w-full max-w-sm disabled:opacity-50"
-      >
-        {loading ? "Logging in..." : "Log In"}
-      </button>
-
-      <button
-        disabled={!googleUrl}
-        onClick={() => (window.location.href = googleUrl)}
-        className="border px-4 py-2 rounded w-full max-w-sm mt-3"
-      >
-        Continue with Google
-      </button>
-
-      <div className="mt-3">
-        <Link to="/forgot-password" className="text-sm text-blue-600">
-          Forgot password?
-        </Link>
+    <main className="flex justify-evenly items-center bg-[#EDF6F9]/18 w-full">
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        {error && <p className="text-red-500 mb-3">{error}</p>}
+        <form className="flex flex-col w-full mt-5">
+          <h2 className="text-[2.37rem] font-myfont text-[#006D77]">
+            Hey , Welcome Back !
+          </h2>
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <section className="flex justify-between items-center mb-4">
+            <Checkbox />
+            <Link to="/forgot-password" className="text-sm text-[#00363A]">
+              Forgot password?
+            </Link>
+          </section>
+          <Button
+            type="submit"
+            onClick={handleLogin}
+            disabled={loading}
+            text={loading ? "Logging in..." : "Log In"}
+          />
+          <section className="flex justify-between items-center mt-3">
+            <div className="border h-0 border-e rotate-y-180 flex justify-center w-[45%] border-[#83C5BE]/30"></div>
+            <p>or</p>
+            <div className="border h-0 border-e rotate-y-180 flex justify-center w-[45%] border-[#83C5BE]/30"></div>
+          </section>
+          <button
+            disabled={!googleUrl}
+            onClick={() => (window.location.href = googleUrl)}
+            className="border px-4 py-3 w-full max-w-sm mt-5 border-[#006D77] rounded-lg"
+          >
+            <p className="text-[#006D77]">Sign in with Google</p>
+          </button>
+        </form>
+        <p className="mt-2">
+          <span className="text-[#00363A]/25">New member?</span>
+          <span className="text-[#00363A]"> Create an account</span>
+        </p>
       </div>
-    </div>
+      <div className="h-screen bg-[#00363A]/25 w-0.5"></div>
+      <div className="">
+        <img src={main_logo} alt="" className="h-112 self-center" />
+      </div>
+    </main>
   );
 };
 
